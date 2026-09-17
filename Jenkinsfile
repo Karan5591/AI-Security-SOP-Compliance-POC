@@ -131,19 +131,16 @@ pipeline {
             }
         }
 
-        stage('Build security review payload') {
+                stage('Build security review payload') {
             steps {
-                // Notice we now cd into target-repo to run the script against it
                 sh '''
                     set -eu
-                    cd target-repo
-                    BASE="${GIT_PREVIOUS_COMMIT:-}"
+                    BASE="\${GIT_PREVIOUS_COMMIT:-}"
                     if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
                       BASE="$(git rev-list --max-parents=0 HEAD)"
                     fi
-                    # We must point to the script in the parent directory (the RAG tool's workspace)
-                    python3 ../ci/build_security_payload.py --base "$BASE" --head "$GIT_COMMIT" \
-                      --repository "${JOB_NAME}" --actor "${BUILD_USER_ID:-jenkins}" > ../security-request.json
+                    python3 ci/build_security_payload.py --base "$BASE" --head "$GIT_COMMIT" \
+                      --repository "\${JOB_NAME}" --actor "\${BUILD_USER_ID:-jenkins}" > security-request.json
                 '''
             }
         }
@@ -154,11 +151,11 @@ pipeline {
                     sh '''
                         set -eu
                         OVERRIDE_ARGS=""
-                        if [ "${SECURITY_OVERRIDE}" = "true" ]; then
-                          : "${SECURITY_OVERRIDE_AUTHORITY:?authority is required}"
-                          : "${SECURITY_OVERRIDE_TICKET:?ticket is required}"
-                          : "${SECURITY_OVERRIDE_REASON:?reason is required}"
-                          : "${SECURITY_OVERRIDE_EXPIRES_AT:?expiry is required}"
+                        if [ "\${SECURITY_OVERRIDE}" = "true" ]; then
+                          : "\${SECURITY_OVERRIDE_AUTHORITY:?authority is required}"
+                          : "\${SECURITY_OVERRIDE_TICKET:?ticket is required}"
+                          : "\${SECURITY_OVERRIDE_REASON:?reason is required}"
+                          : "\${SECURITY_OVERRIDE_EXPIRES_AT:?expiry is required}"
                           python3 - <<'PY'
 import json, os
 from pathlib import Path
@@ -172,13 +169,13 @@ payload['override'] = {
 }
 p.write_text(json.dumps(payload))
 PY
-                          OVERRIDE_ARGS="-H X-Security-Override-Token:${SECURITY_OVERRIDE_TOKEN}"
+                          OVERRIDE_ARGS="-H X-Security-Override-Token:\${SECURITY_OVERRIDE_TOKEN}"
                         fi
                         curl --fail-with-body --silent --show-error \
-                          --request POST "${SECURITY_API_URL}/review/batch" \
+                          --request POST "\${SECURITY_API_URL}/review/batch" \
                           --header "Content-Type: application/json" \
-                          --header "X-API-Key: ${SECURITY_API_KEY}" \
-                          ${OVERRIDE_ARGS} --data-binary @security-request.json > security-result.json
+                          --header "X-API-Key: \${SECURITY_API_KEY}" \
+                          \${OVERRIDE_ARGS} --data-binary @security-request.json > security-result.json
                         cat security-result.json
                         STATUS="$(python3 -c 'import json; print(json.load(open("security-result.json"))["gate"]["status"])')"
                         case "$STATUS" in
