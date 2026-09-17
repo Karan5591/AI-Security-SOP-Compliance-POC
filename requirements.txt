@@ -1,0 +1,7 @@
+# Umbrella file for local/venv installs (pip install -r requirements.txt).
+# Docker installs requirements-core.txt and requirements-tools.txt as
+# SEPARATE layers instead of this file directly - see Dockerfile comments -
+# so that changes here to lighter/faster-changing tools never force a
+# torch/sentence-transformers re-download.
+-r requirements-core.txt
+-r requirements-tools.txt

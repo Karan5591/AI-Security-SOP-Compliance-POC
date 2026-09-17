@@ -1,0 +1,50 @@
+[
+  {
+    "rule_id": "BAC-001",
+    "category": "Broken Access Control / IDOR",
+    "severity": "High",
+    "technology": ["FastAPI", "Node.js", "Angular"],
+    "requirement": "Every resource access must verify that the requesting user is authorized to access that specific resource (ownership/authorization check).",
+    "prohibited": "Returning a resource purely because a valid ID was supplied, without checking ownership.",
+    "detection": "SAST + LLM review",
+    "bad_example": "@app.get(\"/calendar/{user_id}\")\nasync def calendar(user_id):\n    return get_calendar(user_id)",
+    "good_example": "@app.get(\"/calendar/{user_id}\")\nasync def calendar(user_id, current_user):\n    if user_id != current_user.id:\n        raise HTTPException(status_code=403)\n    return get_calendar(user_id)",
+    "remediation": "Add a server-side ownership/authorization check before returning the resource."
+  },
+  {
+    "rule_id": "BAC-002",
+    "category": "Broken Access Control / IDOR",
+    "severity": "High",
+    "technology": ["FastAPI", "Node.js"],
+    "requirement": "Never trust an identity or object ID supplied directly by the client as the sole basis for access.",
+    "prohibited": "Deriving the acting user's identity from a client-supplied field (e.g. a body/query parameter) rather than the authenticated session/token.",
+    "detection": "LLM review + manual review",
+    "bad_example": "user_id = request.body['user_id']  # trusted as-is",
+    "good_example": "user_id = current_user.id  # derived from the verified session/token",
+    "remediation": "Derive the acting user's identity from the authenticated session/access token, not from client input."
+  },
+  {
+    "rule_id": "BAC-003",
+    "category": "Broken Access Control / IDOR",
+    "severity": "High",
+    "technology": ["FastAPI", "Node.js"],
+    "requirement": "Authorization checks must be performed server-side; client-side checks (hidden fields, disabled buttons) are not sufficient.",
+    "prohibited": "Relying on frontend/Angular UI restrictions as the only access control.",
+    "detection": "Manual review",
+    "bad_example": "// Angular hides the delete button, but the DELETE endpoint has no server-side check",
+    "good_example": "// DELETE endpoint independently verifies the caller owns/administers the resource",
+    "remediation": "Add the equivalent server-side authorization check regardless of what the UI already restricts."
+  },
+  {
+    "rule_id": "BAC-004",
+    "category": "Broken Access Control / IDOR",
+    "severity": "High",
+    "technology": ["FastAPI", "Node.js"],
+    "requirement": "Changing a resource identifier in a request (e.g. /user/123 -> /user/124) must not expose another user's data.",
+    "prohibited": "Sequential/guessable resource IDs served without a per-request authorization check.",
+    "detection": "DAST (e.g. OWASP ZAP) + LLM review",
+    "bad_example": "GET /user/124  # returns user 124's private data to user 123's session",
+    "good_example": "GET /user/124  # returns 403 because the session belongs to user 123",
+    "remediation": "Verify object ownership on every request, independent of how the ID was obtained."
+  }
+]

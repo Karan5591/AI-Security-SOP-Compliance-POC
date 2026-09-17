@@ -1,0 +1,50 @@
+[
+  {
+    "rule_id": "ERR-001",
+    "category": "Security Misconfiguration - Error Handling",
+    "severity": "Low",
+    "technology": ["FastAPI", "Node.js", "Nginx"],
+    "requirement": "Production APIs must not expose stack traces to the client.",
+    "prohibited": "Returning raw exception tracebacks/stack traces in HTTP responses.",
+    "detection": "DAST + manual review",
+    "bad_example": "return HTMLResponse(traceback.format_exc(), status_code=500)",
+    "good_example": "return JSONResponse({\"error\": \"internal_server_error\"}, status_code=500)",
+    "remediation": "Return a generic error response externally; log the full traceback internally only."
+  },
+  {
+    "rule_id": "ERR-002",
+    "category": "Security Misconfiguration - Error Handling",
+    "severity": "Low",
+    "technology": ["FastAPI", "Node.js"],
+    "requirement": "Internal exception details (file paths, library versions, query text) must not be returned to clients.",
+    "prohibited": "Including internal implementation details in an error message sent to the client.",
+    "detection": "Manual review",
+    "bad_example": "{\"error\": \"psycopg2.OperationalError: could not connect to server at /var/run/postgresql\"}",
+    "good_example": "{\"error\": \"service_unavailable\"}",
+    "remediation": "Strip internal details from client-facing error payloads."
+  },
+  {
+    "rule_id": "ERR-003",
+    "category": "Security Misconfiguration - Error Handling",
+    "severity": "Low",
+    "technology": ["FastAPI", "Node.js", "Nginx"],
+    "requirement": "Generic, custom error responses/pages must be returned externally for 403/404/405/500 conditions.",
+    "prohibited": "Serving the framework's or server's default error page (which may reveal software name/version).",
+    "detection": "Config scan / DAST",
+    "bad_example": "# default Nginx 404 page with server version in footer",
+    "good_example": "error_page 404 /custom_404.html;",
+    "remediation": "Configure custom error pages for all standard error codes."
+  },
+  {
+    "rule_id": "ERR-004",
+    "category": "Security Misconfiguration - Error Handling",
+    "severity": "Low",
+    "technology": ["FastAPI", "Node.js"],
+    "requirement": "Detailed error/exception information must only be written to internal logs, not returned in the response body.",
+    "prohibited": "Duplicating full exception detail into both logs and the HTTP response.",
+    "detection": "Manual review",
+    "bad_example": "logger.error(str(e)); return JSONResponse({\"error\": str(e)})",
+    "good_example": "logger.error(str(e)); return JSONResponse({\"error\": \"internal_server_error\"})",
+    "remediation": "Log full details server-side; return only a generic message to the client."
+  }
+]

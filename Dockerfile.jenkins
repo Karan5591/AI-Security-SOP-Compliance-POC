@@ -1,0 +1,13 @@
+FROM jenkins/jenkins:lts-jdk17
+
+# Local lab image: Jenkins controls the Docker daemon through the mounted socket.
+# Do not expose this socket to an untrusted Jenkins controller in production.
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl git python3 docker.io \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY jenkins/plugins.txt /usr/share/jenkins/ref/plugins.txt
+RUN jenkins-plugin-cli --plugin-file /usr/share/jenkins/ref/plugins.txt
+
+ENV JAVA_OPTS="-Djenkins.install.runSetupWizard=true"

@@ -1,0 +1,71 @@
+services:
+  db:
+    image: ankane/pgvector:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: secsop
+    ports:
+      - "5433:5432"
+    volumes:
+      - secsop_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d secsop"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/secsop
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    env_file:
+      - .env
+    environment:
+      API_BASE_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./data/test_cases:/app/data/test_cases:ro
+
+  jenkins:
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins
+    user: root
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      JAVA_OPTS: -Djenkins.install.runSetupWizard=true
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  secsop_pgdata:
+  jenkins_home:

@@ -1,0 +1,4 @@
+semgrep==1.177.0
+bandit==1.9.4
+pytest
+pytest-mock

@@ -1,0 +1,50 @@
+[
+  {
+    "rule_id": "XSS-001",
+    "category": "Cross-Site Scripting (XSS)",
+    "severity": "High",
+    "technology": ["Angular", "Node.js", "FastAPI"],
+    "requirement": "Angular's built-in sanitization must not be bypassed (bypassSecurityTrustHtml/Script/Url/ResourceUrl/Style) for any value that is influenced by user input.",
+    "prohibited": "Calling a DomSanitizer.bypassSecurityTrust* method on content that originates from, or is influenced by, user input.",
+    "detection": "Semgrep (angular-bypass-security-trust) + LLM review",
+    "bad_example": "return this.sanitizer.bypassSecurityTrustHtml(userComment);",
+    "good_example": "return userComment; // rendered through Angular's default (safe) interpolation/sanitization",
+    "remediation": "Remove the bypass and let Angular's default sanitization handle the content, or sanitize explicitly (e.g. DOMPurify) if raw HTML rendering is genuinely required."
+  },
+  {
+    "rule_id": "XSS-002",
+    "category": "Cross-Site Scripting (XSS)",
+    "severity": "High",
+    "technology": ["Node.js", "Angular", "FastAPI"],
+    "requirement": "User-controlled data must never be inserted into HTML output (via innerHTML, document.write, template string concatenation into HTML, etc.) without sanitization or escaping.",
+    "prohibited": "Assigning user-controlled data directly to innerHTML/outerHTML, or concatenating it into an HTML string that gets rendered.",
+    "detection": "Semgrep (js-innerhtml-assignment) + LLM review",
+    "bad_example": "element.innerHTML = '<div>' + userComment + '</div>';",
+    "good_example": "element.textContent = userComment; // no HTML interpretation",
+    "remediation": "Use textContent for plain text, or sanitize with a library like DOMPurify before assigning HTML."
+  },
+  {
+    "rule_id": "XSS-003",
+    "category": "Cross-Site Scripting (XSS)",
+    "severity": "Medium",
+    "technology": ["FastAPI", "Node.js"],
+    "requirement": "Server-rendered templates must use auto-escaping for any variable that includes user-controlled data.",
+    "prohibited": "Marking user-controlled template variables as safe/unescaped (e.g. Jinja2 |safe filter, EJS <%- %> unescaped output) without sanitizing first.",
+    "detection": "LLM review + manual review",
+    "bad_example": "{{ user_comment | safe }}",
+    "good_example": "{{ user_comment }}",
+    "remediation": "Remove the unescaped/safe marker unless the value has been explicitly sanitized first; rely on the template engine's default auto-escaping."
+  },
+  {
+    "rule_id": "XSS-004",
+    "category": "Cross-Site Scripting (XSS)",
+    "severity": "Medium",
+    "technology": ["Node.js", "FastAPI", "Angular"],
+    "requirement": "User-supplied values reflected from the URL (query params, path segments) into an HTML response or attribute must be encoded for the context they're rendered in.",
+    "prohibited": "Echoing a URL parameter directly into an HTML response or HTML attribute without context-appropriate encoding.",
+    "detection": "LLM review + manual review",
+    "bad_example": "res.send(`<h1>Results for: ${req.query.q}</h1>`);",
+    "good_example": "res.send(`<h1>Results for: ${escapeHtml(req.query.q)}</h1>`);",
+    "remediation": "HTML-encode (or attribute-encode, as appropriate) any reflected user input before it reaches the response."
+  }
+]

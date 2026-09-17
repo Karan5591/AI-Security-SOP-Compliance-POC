@@ -1,0 +1,26 @@
+# Python Environments & Caches
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# Streamlit Caches & Configs
+.streamlit/credentials.toml
+.streamlit/config.toml
+.streamlit/cache/
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+
+# Editor Settings
+.vscode/
+
+# Project Specifics
+eslint-config/node_modules/
+eslint-config/.scan-scratch/
+
+# Logs
+*.log

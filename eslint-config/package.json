@@ -1,0 +1,11 @@
+{
+  "name": "eslint-security-config",
+  "private": true,
+  "description": "Pinned ESLint + security plugin versions used by app/security/eslint_scanner.py. Not a runnable app - just a dependency set installed at Docker build time.",
+  "devDependencies": {
+    "eslint": "9.39.5",
+    "eslint-plugin-security": "4.0.1",
+    "eslint-plugin-no-unsanitized": "4.1.5",
+    "typescript-eslint": "8.70.0"
+  }
+}

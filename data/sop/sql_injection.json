@@ -1,0 +1,62 @@
+[
+  {
+    "rule_id": "SQL-001",
+    "category": "SQL Injection",
+    "severity": "Critical",
+    "technology": ["FastAPI", "Node.js", "PostgreSQL"],
+    "requirement": "All SQL queries must use parameterized queries, prepared statements, or an approved ORM/query builder.",
+    "prohibited": "String concatenation or f-string/template interpolation when constructing SQL from user-controlled input.",
+    "detection": "SAST + LLM review",
+    "bad_example": "query = f\"SELECT * FROM users WHERE id = {user_id}\"",
+    "good_example": "query(\"SELECT * FROM users WHERE id = $1\", [user_id])",
+    "remediation": "Rewrite the query using parameter binding instead of string interpolation."
+  },
+  {
+    "rule_id": "SQL-002",
+    "category": "SQL Injection",
+    "severity": "Critical",
+    "technology": ["FastAPI", "Node.js", "PostgreSQL"],
+    "requirement": "All user-controlled database parameters must be bound, never embedded directly into the SQL string.",
+    "prohibited": "Passing raw, unbound user input into any part of a SQL statement.",
+    "detection": "SAST + LLM review",
+    "bad_example": "cursor.execute(\"SELECT * FROM orders WHERE user=\" + user_input)",
+    "good_example": "cursor.execute(\"SELECT * FROM orders WHERE user=%s\", (user_input,))",
+    "remediation": "Bind all user-controlled values as query parameters."
+  },
+  {
+    "rule_id": "SQL-003",
+    "category": "SQL Injection",
+    "severity": "High",
+    "technology": ["FastAPI", "Node.js"],
+    "requirement": "Use approved ORM/query-builder APIs for database access rather than hand-written raw SQL where practical.",
+    "prohibited": "Ad-hoc raw SQL string building outside the approved ORM/query-builder layer.",
+    "detection": "SAST + manual review",
+    "bad_example": "db.raw(f\"UPDATE accounts SET balance={amount} WHERE id={acct_id}\")",
+    "good_example": "Account.objects.filter(id=acct_id).update(balance=amount)",
+    "remediation": "Migrate raw SQL call sites to the approved ORM/query-builder."
+  },
+  {
+    "rule_id": "SQL-004",
+    "category": "SQL Injection",
+    "severity": "Medium",
+    "technology": ["FastAPI", "Node.js"],
+    "requirement": "Validate and constrain user input server-side (type, length, format/allow-list) before it reaches a query.",
+    "prohibited": "Trusting client-supplied input without server-side validation.",
+    "detection": "LLM review + manual review",
+    "bad_example": "user_id = request.query_params['id']  # used directly, unvalidated",
+    "good_example": "user_id = int(request.query_params['id'])  # type-constrained",
+    "remediation": "Add explicit server-side validation/type-coercion before the value is used."
+  },
+  {
+    "rule_id": "SQL-005",
+    "category": "SQL Injection",
+    "severity": "Critical",
+    "technology": ["PostgreSQL", "FastAPI", "Node.js"],
+    "requirement": "Database credentials must never be hardcoded in source code.",
+    "prohibited": "Literal usernames/passwords/connection strings committed to the repository.",
+    "detection": "Secret scanner (e.g. Gitleaks)",
+    "bad_example": "DATABASE_URL = \"postgresql://admin:P@ssw0rd@db/prod\"",
+    "good_example": "DATABASE_URL = os.environ[\"DATABASE_URL\"]",
+    "remediation": "Move credentials to environment variables or a secrets manager; rotate any exposed credential."
+  }
+]

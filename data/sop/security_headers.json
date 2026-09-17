@@ -1,0 +1,50 @@
+[
+  {
+    "rule_id": "HDR-001",
+    "category": "Security Misconfiguration - HTTP Headers",
+    "severity": "Medium",
+    "technology": ["Nginx", "FastAPI"],
+    "requirement": "Content-Security-Policy (CSP) must be configured where applicable to restrict allowed content sources.",
+    "prohibited": "Serving HTML responses with no Content-Security-Policy header.",
+    "detection": "DAST / config scan",
+    "bad_example": "# nginx.conf has no CSP header directive",
+    "good_example": "add_header Content-Security-Policy \"default-src 'self'\";",
+    "remediation": "Add an appropriately scoped Content-Security-Policy header."
+  },
+  {
+    "rule_id": "HDR-002",
+    "category": "Security Misconfiguration - HTTP Headers",
+    "severity": "Medium",
+    "technology": ["Nginx", "FastAPI"],
+    "requirement": "X-Content-Type-Options must be set to 'nosniff' to prevent MIME-type sniffing.",
+    "prohibited": "Omitting the X-Content-Type-Options header.",
+    "detection": "Config scan",
+    "bad_example": "# header not present in server config",
+    "good_example": "add_header X-Content-Type-Options \"nosniff\";",
+    "remediation": "Add 'X-Content-Type-Options: nosniff' to the server configuration."
+  },
+  {
+    "rule_id": "HDR-003",
+    "category": "Security Misconfiguration - HTTP Headers",
+    "severity": "Medium",
+    "technology": ["Nginx", "FastAPI"],
+    "requirement": "A Referrer-Policy header must be configured to limit referrer information leakage.",
+    "prohibited": "No Referrer-Policy header on responses.",
+    "detection": "Config scan",
+    "bad_example": "# no Referrer-Policy directive",
+    "good_example": "add_header Referrer-Policy \"strict-origin-when-cross-origin\";",
+    "remediation": "Add a Referrer-Policy header appropriate to the application's needs."
+  },
+  {
+    "rule_id": "HDR-004",
+    "category": "Security Misconfiguration - HTTP Headers",
+    "severity": "Medium",
+    "technology": ["Nginx", "FastAPI"],
+    "requirement": "A Permissions-Policy (or clickjacking protection such as X-Frame-Options) must be implemented.",
+    "prohibited": "Serving pages that can be freely framed by third-party sites, with no clickjacking protection.",
+    "detection": "Config scan / DAST",
+    "bad_example": "# no X-Frame-Options or Permissions-Policy set",
+    "good_example": "add_header X-Frame-Options \"DENY\";\nadd_header Permissions-Policy \"geolocation=()\";",
+    "remediation": "Add X-Frame-Options and/or a Permissions-Policy header."
+  }
+]

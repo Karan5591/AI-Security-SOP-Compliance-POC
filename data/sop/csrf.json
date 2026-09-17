@@ -1,0 +1,38 @@
+[
+  {
+    "rule_id": "CSRF-001",
+    "category": "Cross-Site Request Forgery (CSRF)",
+    "severity": "High",
+    "technology": ["Node.js", "FastAPI", "Angular"],
+    "requirement": "State-changing endpoints (POST/PUT/PATCH/DELETE) that rely on cookie-based session authentication must require a CSRF token or an equivalent double-submit/custom-header check.",
+    "prohibited": "A state-changing endpoint that authenticates purely via an automatically-sent session cookie, with no CSRF token or custom-header verification.",
+    "detection": "LLM review + manual review",
+    "bad_example": "app.post('/account/delete', requireSession, (req, res) => { deleteAccount(req.session.userId); });",
+    "good_example": "app.post('/account/delete', requireSession, csrfProtection, (req, res) => { deleteAccount(req.session.userId); });",
+    "remediation": "Add CSRF token middleware (e.g. csurf-equivalent) to all cookie-session-authenticated state-changing routes, and have the frontend send the token on every such request."
+  },
+  {
+    "rule_id": "CSRF-002",
+    "category": "Cross-Site Request Forgery (CSRF)",
+    "severity": "Medium",
+    "technology": ["Node.js", "FastAPI"],
+    "requirement": "Session/authentication cookies must set SameSite=Strict or SameSite=Lax, unless a documented cross-site use case requires SameSite=None (which must then also set Secure).",
+    "prohibited": "Setting a session/auth cookie with no SameSite attribute, or SameSite=None without Secure.",
+    "detection": "Config scan + manual review",
+    "bad_example": "res.cookie('session', token);",
+    "good_example": "res.cookie('session', token, { sameSite: 'Strict', secure: true, httpOnly: true });",
+    "remediation": "Set SameSite=Strict or Lax on all session cookies; use None+Secure only where a documented cross-site requirement exists."
+  },
+  {
+    "rule_id": "CSRF-003",
+    "category": "Cross-Site Request Forgery (CSRF)",
+    "severity": "Medium",
+    "technology": ["Node.js", "FastAPI"],
+    "requirement": "GET endpoints must be side-effect-free (read-only). Any endpoint that changes state must use POST/PUT/PATCH/DELETE.",
+    "prohibited": "A GET endpoint that performs a state-changing action (e.g. deleting a resource, modifying data) purely because it's reachable via a simple link/image tag.",
+    "detection": "LLM review + manual review",
+    "bad_example": "app.get('/account/delete', requireSession, (req, res) => { deleteAccount(req.session.userId); });",
+    "good_example": "app.post('/account/delete', requireSession, csrfProtection, (req, res) => { deleteAccount(req.session.userId); });",
+    "remediation": "Move the state-changing logic to a POST/PUT/PATCH/DELETE endpoint with CSRF protection; GET must remain read-only."
+  }
+]

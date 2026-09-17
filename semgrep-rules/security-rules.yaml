@@ -1,0 +1,186 @@
+rules:
+  # --- Command Injection ---
+  - id: python-subprocess-shell-true
+    languages: [python]
+    severity: ERROR
+    message: >
+      subprocess call uses shell=True. If any part of the command string is
+      influenced by user input, this allows arbitrary command injection.
+      Use a list of arguments with shell=False (the default) instead.
+    patterns:
+      - pattern-either:
+          - pattern: subprocess.run(..., shell=True, ...)
+          - pattern: subprocess.call(..., shell=True, ...)
+          - pattern: subprocess.Popen(..., shell=True, ...)
+          - pattern: subprocess.check_output(..., shell=True, ...)
+    metadata:
+      category: security
+      cwe: "CWE-78: OS Command Injection"
+      owasp: "A03:2021 - Injection"
+
+  - id: python-os-system
+    languages: [python]
+    severity: ERROR
+    message: >
+      os.system() executes a command through the shell. If any part of the
+      command is influenced by user input, this allows command injection.
+      Use subprocess with a list of arguments and shell=False instead.
+    patterns:
+      - pattern: os.system(...)
+    metadata:
+      category: security
+      cwe: "CWE-78: OS Command Injection"
+      owasp: "A03:2021 - Injection"
+
+  - id: node-child-process-exec
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >
+      child_process.exec() runs a command through the shell. If any part of
+      the command string is influenced by user input, this allows command
+      injection. Use execFile() or spawn() with an argument array instead.
+    patterns:
+      - pattern-either:
+          - pattern: child_process.exec(...)
+          - pattern: exec(...)
+    paths:
+      exclude:
+        - "*.test.js"
+        - "*.spec.js"
+    metadata:
+      category: security
+      cwe: "CWE-78: OS Command Injection"
+      owasp: "A03:2021 - Injection"
+
+  # --- Insecure Deserialization ---
+  - id: python-pickle-loads
+    languages: [python]
+    severity: ERROR
+    message: >
+      pickle.loads()/pickle.load() on data from an untrusted source allows
+      arbitrary code execution. Use a safe serialization format (JSON) for
+      any data that isn't fully trusted and internally generated.
+    patterns:
+      - pattern-either:
+          - pattern: pickle.loads(...)
+          - pattern: pickle.load(...)
+    metadata:
+      category: security
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      owasp: "A08:2021 - Software and Data Integrity Failures"
+
+  - id: python-yaml-unsafe-load
+    languages: [python]
+    severity: ERROR
+    message: >
+      yaml.load() without an explicit safe Loader can execute arbitrary
+      Python code embedded in the YAML input. Use yaml.safe_load() instead.
+    patterns:
+      - pattern: yaml.load($DATA)
+    metadata:
+      category: security
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      owasp: "A08:2021 - Software and Data Integrity Failures"
+
+  # --- Dangerous eval/exec ---
+  - id: python-eval-exec
+    languages: [python]
+    severity: ERROR
+    message: >
+      eval()/exec() on any string that could be influenced by user input
+      allows arbitrary code execution. Avoid eval/exec entirely, or use a
+      safe parser (e.g. ast.literal_eval) for the narrow case of parsing
+      literals.
+    patterns:
+      - pattern-either:
+          - pattern: eval(...)
+          - pattern: exec(...)
+    metadata:
+      category: security
+      cwe: "CWE-95: Eval Injection"
+      owasp: "A03:2021 - Injection"
+
+  - id: node-eval
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >
+      eval() executes arbitrary JavaScript. If any part of the evaluated
+      string is influenced by user input, this allows arbitrary code
+      execution. Avoid eval() entirely.
+    patterns:
+      - pattern: eval(...)
+    metadata:
+      category: security
+      cwe: "CWE-95: Eval Injection"
+      owasp: "A03:2021 - Injection"
+
+  # --- XSS ---
+  - id: angular-bypass-security-trust
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >
+      Angular's bypassSecurityTrust* methods explicitly disable Angular's
+      built-in XSS sanitization for this value. If the underlying content is
+      influenced by user input, this is a direct XSS vector. Only use this
+      on content you fully control, and prefer sanitizing/escaping instead.
+    patterns:
+      - pattern-either:
+          - pattern: $SANITIZER.bypassSecurityTrustHtml(...)
+          - pattern: $SANITIZER.bypassSecurityTrustScript(...)
+          - pattern: $SANITIZER.bypassSecurityTrustUrl(...)
+          - pattern: $SANITIZER.bypassSecurityTrustResourceUrl(...)
+          - pattern: $SANITIZER.bypassSecurityTrustStyle(...)
+    metadata:
+      category: security
+      cwe: "CWE-79: Cross-Site Scripting"
+      owasp: "A03:2021 - Injection"
+
+  - id: js-innerhtml-assignment
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >
+      Assigning to .innerHTML renders the string as HTML, including any
+      <script>/event-handler content. If the assigned value is influenced by
+      user input, this is a direct XSS vector. Use .textContent for plain
+      text, or a sanitizer (e.g. DOMPurify) if HTML rendering is required.
+    patterns:
+      - pattern: $EL.innerHTML = $VAL
+    metadata:
+      category: security
+      cwe: "CWE-79: Cross-Site Scripting"
+      owasp: "A03:2021 - Injection"
+
+  # --- Weak Cryptography ---
+  - id: python-weak-hash
+    languages: [python]
+    severity: WARNING
+    message: >
+      MD5/SHA1 are cryptographically broken and unsuitable for passwords,
+      tokens, or signatures (collision-prone). Use bcrypt/argon2/scrypt for
+      passwords, or SHA-256+ for general hashing needs.
+    patterns:
+      - pattern-either:
+          - pattern: hashlib.md5(...)
+          - pattern: hashlib.sha1(...)
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp: "A02:2021 - Cryptographic Failures"
+
+  - id: node-weak-hash
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >
+      MD5/SHA1 are cryptographically broken and unsuitable for passwords,
+      tokens, or signatures (collision-prone). Use bcrypt/argon2/scrypt for
+      passwords, or SHA-256+ for general hashing needs.
+    patterns:
+      - pattern-either:
+          - pattern: crypto.createHash("md5")
+          - pattern: crypto.createHash('md5')
+          - pattern: crypto.createHash("sha1")
+          - pattern: crypto.createHash('sha1')
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp: "A02:2021 - Cryptographic Failures"
