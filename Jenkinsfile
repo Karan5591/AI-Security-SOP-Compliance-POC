@@ -36,15 +36,18 @@ pipeline {
             steps {
                 sh '''
                     set -eu
-                    BASE="\${GIT_PREVIOUS_COMMIT:-}"
-                    if [ -z "\$BASE" ] || ! git cat-file -e "\$BASE^{commit}" 2>/dev/null; then
-                      BASE="\$(git rev-list --max-parents=0 HEAD)"
-                    fi
-                    python3 ci/build_security_payload.py --base "\$BASE" --head "\$GIT_COMMIT" \
-                      --repository "\${JOB_NAME}" --actor "\${BUILD_USER_ID:-jenkins}" > security-request.json
-                '''
-            }
-        }
+                    cd target-repo
+                    BASE="$(git rev-parse HEAD~1 2>/dev/null || git rev-list --max-parents=0 HEAD)"
+                    HEAD="$(git rev-parse HEAD)"
+            python3 ../ci/build_security_payload.py \
+              --base "$BASE" \
+              --head "$HEAD" \
+              --repository "${TARGET_REPO_URL}" \
+              --actor "${BUILD_USER_ID:-jenkins}" \
+              > ../security-request.json
+        '''
+    }
+}
 
         stage('Security gate') {
             steps {
