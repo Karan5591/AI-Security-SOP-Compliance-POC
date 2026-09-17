@@ -5,7 +5,7 @@ pipeline {
     parameters {
         string(name: 'TARGET_REPO_URL', defaultValue: 'https://github.com/Karan5591/rag-project.git', description: 'The repository to scan and build')
         string(name: 'TARGET_BRANCH', defaultValue: 'main', description: 'The branch to build')
-        
+
         booleanParam(name: 'SECURITY_OVERRIDE', defaultValue: false, description: 'Use an approved security waiver')
         string(name: 'SECURITY_OVERRIDE_AUTHORITY', defaultValue: '', description: 'Approving authority or role')
         string(name: 'SECURITY_OVERRIDE_TICKET', defaultValue: '', description: 'Change or waiver ticket')
@@ -16,8 +16,6 @@ pipeline {
     environment {
         SECURITY_API_URL = credentials('security-api-url')
         SECURITY_API_KEY = credentials('security-api-key')
-        API_IMAGE = "ai-security-poc-api:${BUILD_TAG}"
-        FRONTEND_IMAGE = "ai-security-poc-frontend:${BUILD_TAG}"
     }
 
     stages {
@@ -34,20 +32,19 @@ pipeline {
 
         stage('Build security review payload') {
             steps {
+                // Scans target-repo itself (the repo named by TARGET_REPO_URL), not the
+                // outer Jenkins job checkout -- GIT_PREVIOUS_COMMIT/GIT_COMMIT belong to
+                // whatever repo this job's own SCM config points at, which is not
+                // necessarily the repo we were asked to review.
                 sh '''
                     set -eu
-                    cd target-repo
-                    BASE="$(git rev-parse HEAD~1 2>/dev/null || git rev-list --max-parents=0 HEAD)"
-                    HEAD="$(git rev-parse HEAD)"
-            python3 ../ci/build_security_payload.py \
-              --base "$BASE" \
-              --head "$HEAD" \
-              --repository "${TARGET_REPO_URL}" \
-              --actor "${BUILD_USER_ID:-jenkins}" \
-              > ../security-request.json
-        '''
-    }
-}
+                    python3 ci/build_security_payload.py \
+                      --repo-dir target-repo \
+                      --repository "${TARGET_REPO_URL}" \
+                      --actor "${BUILD_USER_ID:-jenkins}" > security-request.json
+                '''
+            }
+        }
 
         stage('Security gate') {
             steps {
@@ -91,16 +88,32 @@ PY
             }
         }
 
-        stage('Build and test images') {
+        stage('Build target repo image (optional)') {
+            // Not every scanned repo is containerized, and building isn't part of the
+            // security review -- the gate already passed by the time we get here. This
+            // stage is a best-effort convenience: build a Docker image only if the
+            // target repo actually provides one, named after that repo (not a fixed
+            // name that only made sense for security-sop-poc itself). Missing
+            // Dockerfiles are logged and skipped, never treated as a failure.
             steps {
                 sh '''
                     set -eu
                     cd target-repo
-                    docker build --tag "\${API_IMAGE}" .
-                    docker run --rm "\${API_IMAGE}" pytest tests -q
-                    docker build --tag "\${FRONTEND_IMAGE}" --file Dockerfile.frontend .
-                    docker tag "\${API_IMAGE}" ai-security-poc-api:latest
-                    docker tag "\${FRONTEND_IMAGE}" ai-security-poc-frontend:latest
+                    REPO_NAME="$(basename -s .git "${TARGET_REPO_URL}")"
+
+                    if [ -f Dockerfile ]; then
+                      docker build --tag "${REPO_NAME}:${BUILD_TAG}" .
+                      docker tag "${REPO_NAME}:${BUILD_TAG}" "${REPO_NAME}:latest"
+                      echo "Built ${REPO_NAME}:${BUILD_TAG}"
+                    else
+                      echo "No Dockerfile at the root of ${REPO_NAME} -- skipping build. This is expected for non-containerized or source-only repos."
+                    fi
+
+                    if [ -f Dockerfile.frontend ]; then
+                      docker build --tag "${REPO_NAME}-frontend:${BUILD_TAG}" --file Dockerfile.frontend .
+                      docker tag "${REPO_NAME}-frontend:${BUILD_TAG}" "${REPO_NAME}-frontend:latest"
+                      echo "Built ${REPO_NAME}-frontend:${BUILD_TAG}"
+                    fi
                 '''
             }
         }
