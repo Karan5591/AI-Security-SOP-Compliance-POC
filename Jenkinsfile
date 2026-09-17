@@ -27,7 +27,7 @@ pipeline {
                 sh """
                     set -eu
                     rm -rf target-repo
-                    git clone --branch "${TARGET_BRANCH}" "${TARGET_REPO_URL}" target-repo
+                    git clone --branch "${params.TARGET_BRANCH}" "${params.TARGET_REPO_URL}" target-repo
                 """
             }
         }
